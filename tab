@@ -9,7 +9,7 @@ STATUS = 0
 APPEND = None
 IMPORTS = False
 DELIMITER = "\t"
-FILTER = False
+FILTER = None
 HEADERS = False
 LOOSE_ERRORS = False
 LOOSE_EXIT_STATUS = True
@@ -22,12 +22,12 @@ FIELDS = False
 FIELDS_LO = False
 FIELDS_HI = False
 
-short_options = "a::d::f::FHi:l::Lqt:Vhv"
+short_options = "a::d::f::F::Hi:l::Lqt:Vhv"
 long_options = [
 	"append=?",
 	"delimiter=?",
 	"fields=?",
-	"filter",
+	"filter=?",
 	"headers",
 	"import=",
 	"loose-errors=?",
@@ -63,7 +63,7 @@ def tabulate():
 		sys.exit(1)
 	except Exception as e:
 		if not QUIET:
-			print(f"{PROGNAME}: {n}: {val}: {str(type(e)).split("'")[1]}: {e}", file=sys.stderr) #')emacs moment
+			print(f"{PROGNAME}: {n}: {globals()[VARIABLE]}: {str(type(e)).split("'")[1]}: {e}", file=sys.stderr) #')emacs moment
 		if not LOOSE_ERRORS:
 			sys.exit(0 if LOOSE_EXIT_STATUS else 2)
 		STATUS = 2
@@ -141,7 +141,7 @@ for opt, arg in opts:
 				continue
 			FIELDS.sort()
 	elif opt == "-F" or opt == "--filter":
-		if arg is None:
+		if not arg:
 			FILTER = True
 		elif arg == "v":
 			FILTER = False
@@ -169,9 +169,9 @@ for opt, arg in opts:
 			arg = "string"
 			
 		if "." in arg:
-			eval(f"import {arg}")
+			exec(f"import {arg}")
 		else:
-			eval(f"from {arg} import *")
+			exec(f"from {arg} import *")
 	elif opt == "-l" or opt == "--loose-errors":
 		if not arg:
 			LOOSE_ERRORS = True
@@ -281,12 +281,15 @@ while line := fp.readline():
 			continue
 		globals()[VARIABLE] = try_convert(cf)
 		val = tabulate()
-		if FILTER:
-			if not ((FILTER is True) and (not val)) or ((FILTER is False) and (val)):
-				break
-			if ((FILTER == "any") and (not val)) or ((FILTER == "any-invert") and (val)):
+		if FILTER is not None:
+			if ((FILTER is True) and val) or ((FILTER is False) and (not val)):
 				filter_any = True
-			continue
+				continue
+			if ((FILTER == "any") and val) or ((FILTER == "any-invert") and (not val)):
+				filter_any = True
+				continue
+			if isinstance(FILTER, bool):
+				break
 		if APPEND is None:
 			oline[i] = val
 		elif APPEND is False:
