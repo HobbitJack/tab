@@ -1,0 +1,102 @@
+.TH TAB "1" "October 2026" "tab v1.0.0" "User Commands"
+.SH NAME
+tab \- tabulate values of a function
+.SH SYNOPSIS
+.SY
+.B tab
+[\fI\,OPTION\/\fR]... \fI\,EXPRESSION\fR [\fI\,FILE\/\fR]
+.YS
+.SH DESCRIPTION
+.B tab
+tabulates values of EXPRESSION for each line of input.
+EXPRESSION is a Python expression, which may use the variables 'x', 'X', and 'LNUM' to access properties about the current line, and any modules which have been imported by the \fB\-i\fR flag (by defult, the 'math' module will be imported into the global namespace).
+Without any options, the entire line will be treated as a single input, and will be replaced in-place by the tabulated value.
+By default, each line or field will be converted to a float if it can be, otherwise it will be treated as a string.
+This program will eval() \fIEXPRESSION\fR, so sanitize your inputs to be certain that it does not contain or do any potentially dangerous things.
+.PP
+The 'x' variable contains the current line, or field, converted to the operating type (see the \fB\-t\fR flag).
+.br
+The 'X' variable contains the current line as a list, with each field converted to the operating type.
+.br
+The 'n' variable contains the current line number.
+.TP
+If no \fFILE\fR is specified on the command line, read from standard input.
+.SH OPTIONS
+Mandatory options to long options are mandatory for short options too.
+.TP
+\fB\-a\fR, \fB\-\-append\fR[=\fI\,LOCATION\/\fR]
+Append the tabulated value to the line rather than replacing it.
+By default, with no \fILOCATION\fR this will insert each tabulated value in the field after the input.
+\fILOCATION\fR may be any of '+', '-', or a positive integer.
+With '+', the new fields will be appeneded to the end of the line in order of computation.
+With '-', the new fields will be inserted just before the field from which it was computed.
+With a number, the new fields will be inserted in order after the given field.
+.TP
+\fB\-d\fR, \fB\-\-delimiter\fR[=\fI\,DELIMITERS\/\fR]
+Use characters in \fIDELIMITERS\fR to separate fields; by default, tabs will be used to separate fields.
+If \fIDELIMITERS\fR is not given, separate fields on whitespace.
+The first character in \fIDELIMITERS\fR (or ' ' if \fIDELIMITERS\fR is not given) will be used to delimit the output.
+.TP
+\fB\-f\fR, \fB\-\-fields\fR[=\fI\,FIELDS\/\fR]
+Perform tabulation only for given \fIFIELDS\fR, or if no \fIFIELDS\fR given, for all fields in the line.
+Fields are delimited by the \fIDELIMITER\fR characters (see \fB\-d\fR), and may be specified as a comma separated list of field specifications.
+All field specifications use 1-indexed numbers, and may be given as
+.IP
+N: The Nth field, exactly.
+.br
+N-: The Nth field, and all subsequent fields (actually, from the last field given explicitly to the end of the line).
+.br
+-M: The first field to the Mth field (actually, from the start of the line to the first explicitly-given field).
+.br
+N-M: The Nth to Mth fields, inclusive.
+.TP
+\fB\-F\fR, \fB\-\-filter\fR
+Print only lines for which \fIEXPRESSION\fR evaluates to True.
+Most Python objects are True, so it is often useful to explicitly compute False for lines which are to be excluded.
+.TP
+\fB\-H\fR, \fB\-\-headers\fR
+Treat the first line of input as containing headers, and print it without attempting to process it.
+.TP
+\fB\-i\fR, \fB\-\-import\fR=\fI\,MODULE\fR
+Import MODULE to be used by EXPRESSION.
+If MODULE does not contain any '.'s, then import into the global namespace.
+Otherwise, import normally.
+Certain common modules may be abbreviated as a single letter, viz. 'cmath', 'math', 'numpy', 'random', and 'string'.
+Only some sanitization is done to prevent nonsense (since this must be eval()'d). Be careful!
+.TP
+\fB\-l\fR, \fB\-\-loose\-errors\fR[=\fI\,VALUE\/\fR]
+Do not exit immediately on errors in tabulation.
+If no \fIVALUE\fR is given, leave lines or fields which errored unchanged from their original values.
+Otherwise, replace them with \fIVALUE\fR.
+.TP
+\fB\-L\fR, \fB\-\-loose\-exit\-status\fR
+Change the behavior of the exit status.
+Normally, the program will exit non-zero if any tabulating errors occur.
+This flag will change the behavior such that the program will only exit non-zero if a fatal error is encountered.
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Do not print error messages for tabulation errors.
+.TP
+\fB\-t\fR, \fB\-\-type\fR=\fI\,TYPE\fR
+Change the default type to which fields will attempt to be converted, with fields that cannot be converted remaining as str(). 
+By default, all fields will attempt to be converted to float(), but \fITYPE\fR may be any type which has already been imported (N.B. this means that \fB\-i\fR and \fB\-t\fR flags are not necessarily order independent).
+Certain types may be abbreviated to a single character, viz. 'bytes', 'complex', 'float', 'int', and 'str'.
+If 'e' for 'eval' is given, each line or field will be passed to 'eval()' and the result used as the type-converted value.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print a short help message and exit.
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+Print version information and exit.
+.PP
+.SH AUTHOR
+Written by Jack R. Uteg.
+.SH COPYRIGHT
+Copyright \(co 2026 Jack Renton Uteg.
+License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+.br
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+.SH SEE ALSO
+.TP
+\fBawk(1)\fR, \fBpython(1)\fR, \fBsed(1)\fR

@@ -1,0 +1,279 @@
+#!/usr/bin/python
+import getopt
+import os
+import sys
+
+PROGNAME = os.path.basename(sys.argv[0])
+STATUS = 0
+
+APPEND = None
+IMPORTS = False
+DELIMITER = "\t"
+FILTER = False
+HEADERS = False
+LOOSE_ERRORS = False
+LOOSE_EXIT_STATUS = True
+QUIET = False
+TYPE = float
+VARIABLE = "x"
+LVARIABLE = "X"
+
+FIELDS = False
+FIELDS_LO = False
+FIELDS_HI = False
+
+short_options = "a::d::f::FHi:l::Lqt:hv"
+long_options = [
+	"append=?",
+	"delimiter=?",
+	"fields=?",
+	"filter",
+	"headers",
+	"import=",
+	"loose-errors=?",
+	"loose-exit-status",
+	"quiet",
+	"type=",
+	"help",
+	"version",
+]
+
+def try_convert(val):
+	try:
+		return TYPE(val)
+	except ValueError:
+		return val
+
+def tabulate():
+	try:
+		return eval(EXPRESSION)
+	except NameError as e:
+		print(f"{PROGNAME}: {e.name}: Undefined variable", file=sys.stderr)
+		sys.exit(1)
+	except Exception as e:
+		if not QUIET:
+			print(f"{PROGNAME}: {n}: {val}: {str(type(e)).split("'")[1]}: {e}", file=sys.stderr) #')emacs moment
+		if not LOOSE_ERRORS:
+			sys.exit(0 if LOOSE_EXIT_STATUS else 2)
+		STATUS = 2
+		return str(globals()[VARIABLE]) if LOOSE_ERRORS is True else LOOSE_ERRORS
+
+try:
+	opts, args = getopt.gnu_getopt(sys.argv[1:], short_options, long_options)
+except getopt.GetoptError as error:
+	print(f"{PROGNAME}: '-{error.opt}': Option not recognized", file=sys.stderr)
+	sys.exit(1)
+
+for opt, arg in opts:
+	if opt == "-a" or opt == "--append":
+		if not arg:
+			APPEND = True
+		elif arg == "+":
+			APPEND = -1
+		elif arg == "-":
+			APPEND = False
+		else:
+			try:
+				APPEND = int(arg.strip())
+			except ValueError:
+				print(f"{PROGNAME}: {arg}: Invalid field", file=sys.stderr)
+				sys.exit(1)
+	elif opt == "-d" or opt == "--delimiter":
+		if not arg:
+			DELIMITER = None
+		else:
+			DELIMITER = bytes(arg, "utf-8").decode("unicode_escape")
+	elif opt == "-f" or opt == "--fields":
+		if not arg:
+			FIELDS = True
+			continue
+		if FIELDS == False:
+			FIELDS = []
+		for spec in arg.strip().split(","):
+			if "-" not in spec:
+				try:
+					FIELDS.append(int(spec)-1)
+				except ValueError:
+					print(f"{PROGNAME}: {spec}: Invalid field")
+					sys.exit(1)
+				continue
+			else:
+				lo, hi = spec.split("-")[0:1]
+				try:
+					if lo:
+						lo = int(lo)-1
+					else:
+						lo = False
+				except ValueError:
+					print(f"{PROGNAME}: {lo}: Invalid field")
+					sys.exit(1)
+				try:
+					if hi:
+						hi = int(hi)-1
+					else:
+						hi = False
+				except ValueError:
+					print(f"{PROGNAME}: {hi}: Invalid field")
+					sys.exit(1)
+				
+				if lo and hi:
+					FIELDS.append(*range(lo, hi))					
+				elif not all(lo, hi):
+					if lo:
+						FIELDS.append(lo)
+						FIELDS_HI = True
+					if hi:
+						FIELDS.append(hi)
+						FIELDS_LO = True
+				else:
+					FIELDS = True
+				continue
+			FIELDS.sort()
+	elif opt == "-F" or opt == "--filter":
+		FILTER = True
+	elif opt == "-H" or opt == "--headers":
+		HEADERS = True
+	elif opt == "-i" or opt == "--import":
+		arg = arg.split(",;\t ")[0].strip()
+		IMPORTS = True
+		if arg == "c":
+			arg = "cmath"
+		elif arg == "m":
+			arg = "math"
+		elif arg == "n":
+			arg = "numpy"
+		elif arg == "r":
+			arg = "random"
+		elif arg == "s":
+			arg = "string"
+			
+		if "." in arg:
+			eval(f"import {arg}")
+		else:
+			eval(f"from {arg} import *")
+	elif opt == "-l" or opt == "--loose-errors":
+		if not arg:
+			LOOSE_ERRORS = True
+		else:
+			LOOSE_ERRORS = arg
+	elif opt == "-L" or opt == "--loose-exit-status":
+		LOOSE_EXIT_STATUS = True
+	elif opt == "-q" or opt == "--quiet":
+		QUIET = True
+	elif opt == "-t" or opt == "--type":
+		arg = arg.split(",;\t() ")[0].strip()
+		if arg == "b":
+			arg = "bytes"
+		elif arg == "c":
+			arg = "complex"
+		elif arg == "e":
+			arg = "eval"
+		elif arg == "f":
+			arg = "float"
+		elif arg == "i":
+			arg = "int"
+		elif arg == "s":
+			arg = "str"
+		TYPE = eval(arg)
+	elif opt == "-h" or opt == "--help":
+		print(f"Usage: {PROGNAME} [OPTION]... EXPRESSION [FILE]")
+		print("Tabulate EXPRESSION for each line of FILE, replacing each value")
+		print("If no FILE, or when FILE is '-', read standard input.")
+		print()
+		print("General options:")
+		print("  -a, --append[=LOCATION]         Append, computed values to LOCATION")
+		print("  -d, --delimiter[=DELIMITERS]    Separate fields with DELIMITERS")
+		print("  -f, --fields[=FIELDS]           Tabulate only for FIELDS")
+		print("  -F, --filter                    Only print lines for which EXPRESSIONs are True")
+		print("  -H, --headers                   Do not attempt to tabulate first line of input")
+		print("  -i, --import=MODULE             Import MODULE")
+		print("  -l, --loose-errors[=VALUE]      Print input fields verbatim on error, or VALUE")
+		print("  -L, --loose-exit-status         Exit with 0 even if invalid input encountered")
+		print("  -q, --quiet                     Do not print errors when a tabulation fails")
+		print("  -t, --type=TYPE                 Convert each field to TYPE")
+		print()
+		print("Getting help:")
+		print("  -h, --help                      Print this help message and exit")
+		print("  -v, --version                   Print version information and exit")
+		print()
+		print(f"Try 'man {PROGNAME}' for more information.")
+		sys.exit(0)
+	elif opt == "-v" or opt == "--version":
+		print(f"{PROGNAME} v1.0.0")
+		print()
+		print("Copyright (C) 2026 Jack Renton Uteg.")
+		print("License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.")
+		print("This is free software: you are free to change and redistribute it.")
+		print("There is NO WARRANTY, to the extent permitted by law.")
+		print()
+		print("Written by Jack R. Uteg.")
+		sys.exit(0) 
+		
+if not IMPORTS:
+	from math import *
+
+if not args:
+	print(f"{PROGNAME}: Missing operand", file=sys.stderr)
+	sys.exit(1)
+
+EXPRESSION = args.pop(0)
+
+if len(args) > 1:
+	print(f"{PROGNAME}: {args[1]}: Extra operand", file=sys.stderr)
+	sys.exit(1)
+elif args:
+        fp = open(args[0], mode="r")
+else:
+	fp = sys.stdin
+
+n = 0
+while line := fp.readline():
+	n += 1
+	line = line.removesuffix("\n")
+	if HEADERS:
+		HEADERS = False
+		print(line)
+		continue
+
+	line = line.split(DELIMITER)
+	globals()[LVARIABLE] = [try_convert(f) for f in line]
+	oline = list.copy(line)
+
+	if FIELDS is False:
+		globals()[VARIABLE] = try_convert((DELIMITER[0] if DELIMITER else " ").join(line))
+		val = tabulate()
+		if FILTER:
+			if not val:
+				continue
+		elif APPEND is None:
+			oline = val if isinstance(val, list) else [val]
+		elif APPEND is False:
+			oline.insert(0, val)
+		elif APPEND is True:
+			oline.append(val)
+		print((DELIMITER[0] if DELIMITER else " ").join([str(x) for x in oline]))
+		continue
+	
+	for i, cf in enumerate(line):
+		if not ((FIELDS is True) or (i < FIELDS[0] and FIELDS_LO) or (i in FIELDS) or (i > FIELDS[-1] and FIELDS_HI)):
+			continue
+		globals()[VARIABLE] = try_convert(cf)
+		val = tabulate()
+		if FILTER:
+			if not val:
+				break
+			continue
+		if APPEND is None:
+			oline[i] = val
+		elif APPEND is False:
+			oline.insert(i, val)
+		elif APPEND is True:
+			oline.insert(i+1, val)
+		elif APPEND == -1:
+			oline.append(val)
+		else:
+			oline.insert(APPEND:=APPEND+1, val)
+	else:
+		print((DELIMITER[0] if DELIMITER else " ").join([str(x) for x in oline]))
+
+sys.exit(STATUS if not LOOSE_EXIT_STATUS else 0)
