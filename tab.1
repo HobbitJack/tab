@@ -8,13 +8,13 @@ tab \- tabulate values of a function
 .YS
 .SH DESCRIPTION
 .B tab
-tabulates values of EXPRESSION for each line of input.
-EXPRESSION is a Python expression, which may use the variables 'x', 'X', and 'LNUM' to access properties about the current line, and any modules which have been imported by the \fB\-i\fR flag (by defult, the 'math' module will be imported into the global namespace).
+tabulates values of \fIEXPRESSION\fR for each line of input.
+\fIEXPRESSION\fR is a Python expression, which may use the variables 'x', 'X', and 'LNUM' to access properties about the current line, and any modules which have been imported by the \fB\-i\fR flag (by defult, the 'math' module will be imported into the global namespace).
 Without any options, the entire line will be treated as a single input, and will be replaced in-place by the tabulated value.
 By default, each line or field will be converted to an int if it can, then to a float, and otherwise will be treated as a str.
 This program will eval() \fIEXPRESSION\fR, so sanitize your inputs to be certain that it does not contain or do any potentially dangerous things.
 .PP
-The 'x' variable contains the current line, or field, converted to the operating type (see the \fB\-t\fR flag).
+The 'x' variable contains the current line, or field, converted to the operating \fITYPE\fR (see the \fB\-t\fR flag).
 .br
 The 'X' variable contains the current line as a list, with each field converted to the operating type.
 .br
@@ -27,9 +27,13 @@ Mandatory options to long options are mandatory for short options too.
 \fB\-a\fR, \fB\-\-append\fR[=\fI\,LOCATION\/\fR]
 Append the tabulated value to the line rather than replacing it.
 By default, with no \fILOCATION\fR this will insert each tabulated value in the field after the input.
+.IP
 \fILOCATION\fR may be any of '+', '-', or a positive integer.
+.br
 With '+', the new fields will be appeneded to the end of the line in order of computation.
+.br
 With '-', the new fields will be inserted just before the field from which it was computed.
+.br
 With a number, the new fields will be inserted in order after the given field.
 .TP
 \fB\-d\fR, \fB\-\-delimiter\fR[=\fI\,DELIMITERS\/\fR]
@@ -50,16 +54,23 @@ N-: The Nth field, and all subsequent fields (actually, from the last field give
 .br
 N-M: The Nth to Mth fields, inclusive.
 .TP
-\fB\-F\fR, \fB\-\-filter\fR
-Print only lines for which \fIEXPRESSION\fR evaluates to True.
-Most Python objects are True, so it is often useful to explicitly compute False for lines which are to be excluded.
+\fB\-F\fR, \fB\-\-filter\fR[=\fI\,MODE\/\fR]
+When no \fIMODE\fR is given, print only lines for which \fIEXPRESSION\fR evaluates to True, or for which all fields evaluate to True.
+.IP
+\fIMODE\fR may be any of 'a', 'v', or 'av'/'va'.
+.br
+\fIMODE\fR 'a' will print the line if any field evaluates to True (N.B. this does not short-circuit!).
+.br
+\fIMODE\fR 'v' prints lines for which all fields evaluate to False.
+.br
+\fIMODE\fR 'av' or 'va' prints all lines for which any field evalutes to False.
 .TP
 \fB\-H\fR, \fB\-\-headers\fR
 Treat the first line of input as containing headers, and print it without attempting to process it.
 .TP
 \fB\-i\fR, \fB\-\-import\fR=\fI\,MODULE\fR
-Import MODULE to be used by EXPRESSION.
-If MODULE does not contain any '.'s, then import into the global namespace.
+Import \fIMODULE\fR to be used by \fIEXPRESSION\fR.
+If \fIMODULE\fR does not contain any '.'s, then import into the global namespace.
 Otherwise, import normally.
 Certain common modules may be abbreviated as a single letter, viz. 'cmath', 'math', 'numpy', 'random', and 'string'.
 Only some sanitization is done to prevent nonsense (since this must be eval()'d). Be careful!
@@ -88,7 +99,13 @@ Print a short help message and exit.
 .TP
 \fB\-v\fR, \fB\-\-version\fR
 Print version information and exit.
+.SH EXIT STATUS
 .PP
+0  If OK,
+.br
+1  If a fatal error occurs,
+.br
+2  If an error occurs in tabulation.
 .SH AUTHOR
 Written by Jack R. Uteg.
 .SH COPYRIGHT

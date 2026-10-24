@@ -22,7 +22,7 @@ FIELDS = False
 FIELDS_LO = False
 FIELDS_HI = False
 
-short_options = "a::d::f::FHi:l::Lqt:hv"
+short_options = "a::d::f::FHi:l::Lqt:Vhv"
 long_options = [
 	"append=?",
 	"delimiter=?",
@@ -34,6 +34,7 @@ long_options = [
 	"loose-exit-status",
 	"quiet",
 	"type=",
+        "invert",
 	"help",
 	"version",
 ]
@@ -140,7 +141,17 @@ for opt, arg in opts:
 				continue
 			FIELDS.sort()
 	elif opt == "-F" or opt == "--filter":
-		FILTER = True
+		if arg is None:
+			FILTER = True
+		elif arg == "v":
+			FILTER = False
+		elif arg == "a":
+			FILTER = "any"
+		elif arg == "av" or arg == "va":
+			FILTER = "any-invert"
+		else:
+			print(f"{PROGNAME}: {arg}: Invalid mode", file=sys.stderr)
+			sys.exit(1)
 	elif opt == "-H" or opt == "--headers":
 		HEADERS = True
 	elif opt == "-i" or opt == "--import":
@@ -194,7 +205,7 @@ for opt, arg in opts:
 		print("  -a, --append[=LOCATION]         Append, computed values to LOCATION")
 		print("  -d, --delimiter[=DELIMITERS]    Separate fields with DELIMITERS")
 		print("  -f, --fields[=FIELDS]           Tabulate only for FIELDS")
-		print("  -F, --filter                    Only print lines for which EXPRESSIONs are True")
+		print("  -F, --filter[=MODE]             Filter lines according to EXPRESSIOn and MODE")
 		print("  -H, --headers                   Do not attempt to tabulate first line of input")
 		print("  -i, --import=MODULE             Import MODULE")
 		print("  -l, --loose-errors[=VALUE]      Print input fields verbatim on error, or VALUE")
@@ -252,8 +263,8 @@ while line := fp.readline():
 	if FIELDS is False:
 		globals()[VARIABLE] = try_convert((DELIMITER[0] if DELIMITER else " ").join(line))
 		val = tabulate()
-		if FILTER:
-			if not val:
+		if FILTER is not None:
+			if ((FILTER is True or FILTER == "any") and (not val)) or ((FILTER is False or FILTER == "any-invert") and (val)):
 				continue
 		elif APPEND is None:
 			oline = val if isinstance(val, list) else [val]
@@ -263,15 +274,18 @@ while line := fp.readline():
 			oline.append(val)
 		print((DELIMITER[0] if DELIMITER else " ").join([str(x) for x in oline]))
 		continue
-	
+
+	filter_any = (FILTER is None)
 	for i, cf in enumerate(line):
 		if not ((FIELDS is True) or (i < FIELDS[0] and FIELDS_LO) or (i in FIELDS) or (i > FIELDS[-1] and FIELDS_HI)):
 			continue
 		globals()[VARIABLE] = try_convert(cf)
 		val = tabulate()
 		if FILTER:
-			if not val:
+			if not ((FILTER is True) and (not val)) or ((FILTER is False) and (val)):
 				break
+			if ((FILTER == "any") and (not val)) or ((FILTER == "any-invert") and (val)):
+				filter_any = True
 			continue
 		if APPEND is None:
 			oline[i] = val
@@ -284,6 +298,7 @@ while line := fp.readline():
 		else:
 			oline.insert(APPEND:=APPEND+1, val)
 	else:
-		print((DELIMITER[0] if DELIMITER else " ").join([str(x) for x in oline]))
+		if filter_any:
+			print((DELIMITER[0] if DELIMITER else " ").join([str(x) for x in oline]))
 
 sys.exit(STATUS if not LOOSE_EXIT_STATUS else 0)
