@@ -14,7 +14,7 @@ HEADERS = False
 LOOSE_ERRORS = False
 LOOSE_EXIT_STATUS = True
 QUIET = False
-TYPE = float
+TYPE = None
 VARIABLE = "x"
 LVARIABLE = "X"
 
@@ -39,6 +39,16 @@ long_options = [
 ]
 
 def try_convert(val):
+	if TYPE is None:
+		try:
+			return int(val)
+		except ValueError:
+			pass
+		try:
+			return float(val)
+		except ValueError:
+			pass
+		return val
 	try:
 		return TYPE(val)
 	except ValueError:

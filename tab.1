@@ -11,7 +11,7 @@ tab \- tabulate values of a function
 tabulates values of EXPRESSION for each line of input.
 EXPRESSION is a Python expression, which may use the variables 'x', 'X', and 'LNUM' to access properties about the current line, and any modules which have been imported by the \fB\-i\fR flag (by defult, the 'math' module will be imported into the global namespace).
 Without any options, the entire line will be treated as a single input, and will be replaced in-place by the tabulated value.
-By default, each line or field will be converted to a float if it can be, otherwise it will be treated as a string.
+By default, each line or field will be converted to an int if it can, then to a float, and otherwise will be treated as a str.
 This program will eval() \fIEXPRESSION\fR, so sanitize your inputs to be certain that it does not contain or do any potentially dangerous things.
 .PP
 The 'x' variable contains the current line, or field, converted to the operating type (see the \fB\-t\fR flag).
